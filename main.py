@@ -16,12 +16,14 @@ You will need to complete the take_photo() function and configure the VARIABLES 
 
 #import libraries
 import time
-import board # type: ignore
+import board
 from adafruit_lsm6ds.lsm6dsox import LSM6DSOX as LSM6DS 
 from adafruit_lis3mdl import LIS3MDL 
 from git import Repo 
 from picamera2 import Picamera2 
-import threading
+import cv2 as cv
+import numpy as np
+import json
 
 #VARIABLES
 THRESHOLD = 0      #Any desired value from the accelerometer
@@ -72,22 +74,30 @@ def take_photo():
     This function is NOT complete. Takes a photo when the FlatSat is shaken.
     Replace psuedocode with your own code.
     """
+    prev_img = None
+    prev_yuv = None
+    image_list = []
     for i in range(10):
         time.sleep(5)
-        img_path = img_gen("AlbertC")
+        img_path = img_gen("CentennialCubes")
         picam2.switch_mode_and_capture_file(capture_config, img_path)
+        img = cv.imread(img_path)
+        yuv = cv.cvtColor(img, cv.COLOR_BGR2YUV)
+        if prev_img != None:
+            assert prev_yuv != None
+            avg = np.mean(yuv[:,:,0])
+            prev_avg = np.mean(prev_yuv[:,:,0])
+            delta = avg - prev_avg
+            print(f"Change in average luminosity of {delta}")
+            if avg - prev_avg < THRESHOLD:
+                print(f"Power outage detected")
+        prev_img = img
+        prev_hsv = yuv
+        image_list.append(image_path)
+    with open("image_list.json", "w") as f:
+        json.dump(image_list, f, indent=2)
+    git_push()
 
-
-    # while True:
-        # accelx, accely, accelz = accel_gyro.acceleration
-
-        #CHECKS IF READINGS ARE ABOVE THRESHOLD
-            #PAUSE
-            #name = ""     #First Name, Last Initial  ex. MasonM
-            #TAKE PHOTO
-            #PUSH PHOTO TO GITHUB
-        
-        #PAUSE
 
 
 def main():
